@@ -29,3 +29,4 @@ Files:
 
 Note: this uses raw SMTP over sockets — no Composer, no PHPMailer, nothing to
 install. Just PHP + these four files.
+##
