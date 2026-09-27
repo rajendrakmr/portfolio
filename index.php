@@ -1,0 +1,391 @@
+<?php
+// Read the status flag set by contact-handler.php after form submission
+$status = isset($_GET['status']) ? $_GET['status'] : null;
+$statusMessages = [
+    'success' => ['ok', "Thanks — your message is on its way. We'll reply within 24 hours."],
+    'invalid' => ['err', 'Please fill in your name, a valid email, and a message before sending.'],
+    'error'   => ['err', "Something went wrong sending that. Please email us directly at hello@uptimelabs.io."],
+];
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uptime Labs — IT Support & Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1B2B; --ink-2:#16273D; --ink-3:#1E3350;
+    --paper:#F2F1EC;
+    --amber:#E8A33D; --amber-dim: rgba(232,163,61,0.14);
+    --teal:#4C8577;
+    --line: rgba(242,241,236,0.14);
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top,0px);
+    padding-bottom: env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:inherit; margin:0; padding:0;}
+  html{scroll-padding-top: env(safe-area-inset-top,0px); scroll-behavior:smooth;}
+  body{
+    background:var(--ink); color:var(--paper);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+  @media (max-width:600px){ .wrap{padding:0 20px;} }
+  a{color:inherit;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  header.nav{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+    background:rgba(15,27,43,0.86); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav .wrap{display:flex; align-items:center; justify-content:space-between; height:72px;}
+  .brand{font-weight:600; font-size:1.1rem; letter-spacing:.01em; display:flex; align-items:center; gap:9px;}
+  .brand .dot{width:8px; height:8px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 4px var(--amber-dim);}
+  .nav ul{display:flex; gap:30px; list-style:none; font-size:.92rem;}
+  .nav ul a{opacity:.75; text-decoration:none; transition:opacity .15s;}
+  .nav ul a:hover{opacity:1;}
+  .nav-cta{font-size:.88rem; padding:10px 18px; background:var(--amber); color:var(--ink); font-weight:600; border-radius:3px; text-decoration:none;}
+  @media (max-width:760px){ .nav ul{display:none;} }
+
+  /* HERO */
+  .hero{position:relative; padding:110px 0 90px; border-bottom:1px solid var(--line); overflow:hidden;}
+  .hero::before{
+    content:''; position:absolute; top:-200px; right:-160px; width:600px; height:600px; border-radius:50%;
+    background:radial-gradient(circle at center, rgba(232,163,61,0.16), transparent 68%);
+    pointer-events:none;
+  }
+  .hero::after{
+    content:''; position:absolute; bottom:-260px; left:-160px; width:520px; height:520px; border-radius:50%;
+    background:radial-gradient(circle at center, rgba(76,133,119,0.16), transparent 68%);
+    pointer-events:none;
+  }
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:.82rem; opacity:.7; margin-bottom:22px;}
+  .eyebrow .bar{width:22px; height:1px; background:var(--amber);}
+  h1{font-size:clamp(2.6rem, 6vw, 4.4rem); font-weight:600; line-height:1.05; letter-spacing:-0.015em; max-width:16ch; position:relative;}
+  h1 em{font-style:normal; color:var(--amber);}
+  .hero p.sub{margin-top:26px; font-size:1.15rem; max-width:52ch; opacity:.82; position:relative;}
+  .hero-actions{margin-top:38px; display:flex; gap:16px; flex-wrap:wrap; position:relative;}
+  .btn-primary{background:var(--amber); color:var(--ink); font-weight:600; padding:15px 28px; border-radius:3px; text-decoration:none; font-size:.98rem;}
+  .btn-ghost{padding:15px 28px; border:1px solid var(--line); border-radius:3px; text-decoration:none; font-size:.98rem; opacity:.85;}
+
+  .stat-row{margin-top:76px; display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; position:relative;}
+  @media (max-width:760px){ .stat-row{grid-template-columns:repeat(2,1fr);} }
+  .stat{background:var(--ink); padding:26px 24px;}
+  .stat .num{font-size:1.9rem; font-weight:600; color:var(--amber);}
+  .stat .lbl{font-size:.82rem; opacity:.65; margin-top:6px;}
+
+  /* SECTION HEADERS */
+  section{padding:96px 0; border-bottom:1px solid var(--line);}
+  .sec-head{display:flex; justify-content:space-between; align-items:end; gap:20px; flex-wrap:wrap;}
+  .sec-head h2{font-size:clamp(1.7rem,3.4vw,2.3rem); font-weight:600; max-width:20ch;}
+  .sec-head p{font-size:.98rem; opacity:.68; max-width:36ch;}
+
+  /* SERVICES */
+  .svc-grid{margin-top:52px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+  @media (max-width:820px){ .svc-grid{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .svc-grid{grid-template-columns:1fr;} }
+  .svc{background:var(--ink); padding:34px 28px; transition:background .15s;}
+  .svc:hover{background:var(--ink-2);}
+  .svc .tag{font-size:.72rem; color:var(--amber); letter-spacing:.02em;}
+  .svc h3{margin-top:14px; font-size:1.18rem; font-weight:600;}
+  .svc p{margin-top:12px; font-size:.93rem; opacity:.72; max-width:34ch;}
+
+  /* WORK */
+  .work-grid{margin-top:52px; display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media (max-width:820px){ .work-grid{grid-template-columns:1fr;} }
+  .case{border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--ink-2);}
+  .case-top{padding:30px 30px 0; }
+  .case .platform{font-size:.76rem; color:var(--teal); letter-spacing:.02em;}
+  .case h3{margin-top:12px; font-size:1.3rem; font-weight:600;}
+  .case p{margin-top:12px; font-size:.93rem; opacity:.75; max-width:42ch;}
+  .case-tags{display:flex; gap:8px; flex-wrap:wrap; margin-top:20px;}
+  .case-tags span{font-size:.74rem; padding:6px 10px; border:1px solid var(--line); border-radius:20px; opacity:.75;}
+  .case-visual{margin-top:26px; height:150px; background:
+      repeating-linear-gradient(135deg, var(--ink-3) 0 2px, transparent 2px 22px);
+      position:relative; border-top:1px solid var(--line);
+  }
+  .case-visual .chip{position:absolute; bottom:20px; left:30px; background:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px 14px; font-size:.78rem; display:flex; align-items:center; gap:8px;}
+  .case-visual .chip::before{content:''; width:7px; height:7px; border-radius:50%; background:var(--amber);}
+
+  /* TEAM */
+  .team-grid{margin-top:52px; display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+  @media (max-width:900px){ .team-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:520px){ .team-grid{grid-template-columns:1fr;} }
+  .member{border:1px solid var(--line); border-radius:8px; padding:28px 24px; background:var(--ink-2);}
+  .role-mark{width:38px; height:38px; border-radius:50%; border:1.5px solid var(--amber); display:flex; align-items:center; justify-content:center; font-size:.8rem; color:var(--amber);}
+  .member h3{margin-top:18px; font-size:1.05rem; font-weight:600;}
+  .member .role{font-size:.85rem; color:var(--teal); margin-top:3px;}
+  .member p{margin-top:12px; font-size:.87rem; opacity:.7;}
+
+  /* PROCESS */
+  .process{display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-top:52px;}
+  @media (max-width:820px){ .process{grid-template-columns:1fr 1fr;} }
+  @media (max-width:520px){ .process{grid-template-columns:1fr;} }
+  .step{position:relative; padding-top:20px; border-top:2px solid var(--amber);}
+  .step .n{font-size:.78rem; opacity:.55;}
+  .step h3{margin-top:12px; font-size:1.05rem; font-weight:600;}
+  .step p{margin-top:10px; font-size:.87rem; opacity:.7;}
+
+  /* CONTACT */
+  .contact-inner{display:grid; grid-template-columns:1.1fr 1fr; gap:56px; align-items:center;}
+  @media (max-width:800px){ .contact-inner{grid-template-columns:1fr;} }
+  .contact h2{font-size:clamp(1.9rem,4vw,2.5rem); font-weight:600; max-width:16ch; line-height:1.15;}
+  .contact p{margin-top:18px; opacity:.78; max-width:42ch; font-size:1.02rem;}
+  .contact-card{background:var(--ink-2); border:1px solid var(--line); border-radius:8px; padding:32px;}
+  .contact-card .row{display:flex; justify-content:space-between; padding:13px 0; border-top:1px solid var(--line); font-size:.94rem;}
+  .contact-card .row:first-child{border-top:none;}
+  .contact-card .row span:first-child{opacity:.6;}
+  .contact-card a.cta-inline{display:block; margin-top:22px; text-align:center; background:var(--amber); color:var(--ink); font-weight:600; padding:14px; border-radius:4px; text-decoration:none;}
+  footer{padding:30px 0; font-size:.82rem; opacity:.5; text-align:center;}
+
+  /* FORM */
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:.82rem; opacity:.65; margin-bottom:7px;}
+  .field input, .field textarea{
+    width:100%; background:var(--ink); border:1px solid var(--line); border-radius:4px; color:var(--paper);
+    padding:12px 14px; font-family:inherit; font-size:.94rem; outline:none; transition:border-color .15s;
+  }
+  .field input:focus, .field textarea:focus{border-color:var(--amber);}
+  .field textarea{resize:vertical; min-height:100px;}
+  .form-submit{width:100%; background:var(--amber); color:var(--ink); font-weight:600; border:none; padding:14px; border-radius:4px; font-size:.96rem; font-family:inherit; cursor:pointer; margin-top:4px;}
+  .form-submit:hover{opacity:.92;}
+  .banner{margin-bottom:22px; padding:14px 16px; border-radius:6px; font-size:.9rem;}
+  .banner.ok{background:rgba(76,133,119,0.16); border:1px solid var(--teal); color:var(--paper);}
+  .banner.err{background:rgba(232,163,61,0.14); border:1px solid var(--amber); color:var(--paper);}
+
+  /* TRUST BAR */
+  .trust{padding:36px 0; border-bottom:1px solid var(--line);}
+  .trust .wrap{display:flex; align-items:center; gap:36px; flex-wrap:wrap;}
+  .trust .lbl{font-size:.78rem; opacity:.5; white-space:nowrap;}
+  .trust .chips{display:flex; gap:14px; flex-wrap:wrap;}
+  .trust .chips span{font-size:.86rem; opacity:.55; padding:8px 0;}
+
+  /* TESTIMONIALS */
+  .quote-grid{margin-top:52px; display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  @media (max-width:900px){ .quote-grid{grid-template-columns:1fr;} }
+  .quote{border:1px solid var(--line); border-radius:8px; padding:30px; background:var(--ink-2); display:flex; flex-direction:column; justify-content:space-between;}
+  .quote .mark{font-size:2.2rem; color:var(--amber); line-height:1; font-family:Georgia,serif;}
+  .quote p.q{margin-top:14px; font-size:.96rem; opacity:.85; line-height:1.55;}
+  .quote .who{margin-top:22px; font-size:.85rem; opacity:.6; border-top:1px solid var(--line); padding-top:16px;}
+  .quote .who strong{color:var(--paper); opacity:1; display:block; font-size:.9rem;}
+
+  /* FAQ */
+  .faq-list{margin-top:52px; max-width:760px;}
+  .faq-item{border-top:1px solid var(--line); padding:24px 0;}
+  .faq-item:last-child{border-bottom:1px solid var(--line);}
+  .faq-item summary{cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; font-size:1.02rem; font-weight:500;}
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary .plus{font-family:'IBM Plex Mono',monospace; color:var(--amber); font-size:1.1rem; transition:transform .2s;}
+  .faq-item[open] summary .plus{transform:rotate(45deg);}
+  .faq-item p{margin-top:14px; font-size:.92rem; opacity:.7; max-width:60ch;}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span>Uptime Labs</div>
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#work">Work</a></li>
+      <li><a href="#team">Team</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a class="nav-cta" href="#contact">Start a project</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow"><span class="bar"></span>IT support &amp; product engineering studio</div>
+    <h1>The whole stack, run by one team<br>you actually <em>talk to.</em></h1>
+    <p class="sub">Backend, frontend, product design, and infrastructure — four disciplines under one roof, so nothing gets lost between vendors. Support when things break, engineering when you're building something new.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#contact">Book a call</a>
+      <a class="btn-ghost" href="#work">See our work</a>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="num">&lt;15m</div><div class="lbl">Avg. support response time</div></div>
+      <div class="stat"><div class="num">99.97%</div><div class="lbl">Uptime maintained</div></div>
+      <div class="stat"><div class="num">4</div><div class="lbl">Disciplines, one team</div></div>
+      <div class="stat"><div class="num">24/7</div><div class="lbl">On call for retained clients</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="wrap">
+    <span class="lbl">BUILT FOR TEAMS RUNNING ON —</span>
+    <div class="chips">
+      <span class="mono">Clinics & healthcare</span>
+      <span class="mono">Retail & e-commerce</span>
+      <span class="mono">SaaS startups</span>
+      <span class="mono">Local service businesses</span>
+    </div>
+  </div>
+</section>
+
+<section id="services">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Everything between a broken laptop and a broken deploy.</h2>
+      <p>Pick a single service, or hand us the whole stack.</p>
+    </div>
+    <div class="svc-grid">
+      <div class="svc"><div class="tag mono">SUPPORT</div><h3>Helpdesk & IT support</h3><p>Troubleshooting, device setup, network and access issues — handled fast and documented properly.</p></div>
+      <div class="svc"><div class="tag mono">BUILD</div><h3>Product engineering</h3><p>Frontend and backend development for web and mobile, built and maintained by the same team.</p></div>
+      <div class="svc"><div class="tag mono">DESIGN</div><h3>UI/UX design</h3><p>Interfaces designed around how your users actually work, not just how the data model looks.</p></div>
+      <div class="svc"><div class="tag mono">INFRA</div><h3>Servers & infrastructure</h3><p>Deployment, monitoring and backups — the part clients notice only when it's missing.</p></div>
+      <div class="svc"><div class="tag mono">SECURITY</div><h3>Access & security hygiene</h3><p>Sensible permissions and patching, so small teams aren't exposed like large ones.</p></div>
+      <div class="svc"><div class="tag mono">ADVISORY</div><h3>Ongoing IT partner</h3><p>A retained team on call for whatever comes up, instead of a new vendor for every problem.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Recent builds from the team.</h2>
+      <p>A sample of what backend, frontend, design, and infra look like together.</p>
+    </div>
+    <div class="work-grid">
+      <div class="case">
+        <div class="case-top">
+          <div class="platform mono">REACT NATIVE · MOBILE</div>
+          <h3>Doctor appointment platform</h3>
+          <p>A patient-facing app for finding doctors by specialty and booking appointments, with a live dashboard and RTK Query–powered data layer underneath.</p>
+          <div class="case-tags"><span>React Native</span><span>RTK Query</span><span>Booking flow</span></div>
+        </div>
+        <div class="case-visual"><div class="chip">FindDoctorScreen → BookAppointment</div></div>
+      </div>
+      <div class="case">
+        <div class="case-top">
+          <div class="platform mono">NEXT.JS · WEB</div>
+          <h3>Hospital management system</h3>
+          <p>An admin web app for hospital staff — authentication, an operations dashboard, and day-to-day management tooling built on Next.js and Bootstrap.</p>
+          <div class="case-tags"><span>Next.js</span><span>Bootstrap</span><span>Admin dashboard</span></div>
+        </div>
+        <div class="case-visual"><div class="chip">Admin dashboard · AuthProvider</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Four roles, no handoffs.</h2>
+      <p>Everyone works from the same context — nothing gets lost in translation.</p>
+    </div>
+    <div class="team-grid">
+      <div class="member"><div class="role-mark mono">BE</div><h3>Backend Engineering</h3><div class="role">APIs & data</div><p>Builds and maintains the services and databases everything else depends on.</p></div>
+      <div class="member"><div class="role-mark mono">FE</div><h3>Frontend Engineering</h3><div class="role">Web & mobile</div><p>Turns designs into fast, reliable interfaces across web and mobile.</p></div>
+      <div class="member"><div class="role-mark mono">UX</div><h3>UI/UX Design</h3><div class="role">Product design</div><p>Shapes flows and screens around what the end user is actually trying to do.</p></div>
+      <div class="member"><div class="role-mark mono">OP</div><h3>Server & Infrastructure</h3><div class="role">Deployment & uptime</div><p>Keeps servers, deployments and monitoring running quietly in the background.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>How an engagement runs.</h2>
+      <p>Same process whether it's a two-day fix or a three-month build.</p>
+    </div>
+    <div class="process">
+      <div class="step"><div class="n mono">01</div><h3>Scope the problem</h3><p>A short call to understand what's broken or what you're building, and who needs what.</p></div>
+      <div class="step"><div class="n mono">02</div><h3>Assign the team</h3><p>The right mix of support, design, and engineering — not a generic account manager.</p></div>
+      <div class="step"><div class="n mono">03</div><h3>Build & support</h3><p>Work happens in the open, with regular check-ins instead of a black-box handoff.</p></div>
+      <div class="step"><div class="n mono">04</div><h3>Stay on call</h3><p>Retained clients keep the same team on call for whatever comes up next.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Common questions before signing on.</h2>
+      <p>The things most clients ask in the first call.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item" open>
+        <summary>Do we need a full-time IT team to work with you?<span class="plus">+</span></summary>
+        <p>No. Most clients use us instead of hiring in-house — you get backend, frontend, design and infra coverage without four separate salaries.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can you take over an existing product?<span class="plus">+</span></summary>
+        <p>Yes. We regularly step into codebases we didn't build — the first two weeks are spent mapping the system before we touch anything.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What does a retainer actually include?<span class="plus">+</span></summary>
+        <p>Ongoing support hours, monitoring, and priority access to the whole team — engineering and design included, not billed separately.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How fast can you start?<span class="plus">+</span></summary>
+        <p>Support engagements can start within days. Product builds start with a scoping call, usually within a week.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>What clients say after the first project.</h2>
+    </div>
+    <div class="quote-grid">
+      <div class="quote">
+        <div><div class="mark">"</div><p class="q">They fixed our server issues in a day, then quietly kept an eye on things without us having to ask.</p></div>
+        <div class="who"><strong>Clinic owner</strong>Healthcare, retained client</div>
+      </div>
+      <div class="quote">
+        <div><div class="mark">"</div><p class="q">Having design and engineering in the same room meant we stopped losing weeks to handoffs between vendors.</p></div>
+        <div class="who"><strong>Product founder</strong>SaaS, project engagement</div>
+      </div>
+      <div class="quote">
+        <div><div class="mark">"</div><p class="q">Support tickets that used to take days now get resolved before we even notice the problem.</p></div>
+        <div class="who"><strong>Operations lead</strong>Retail, retained client</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" style="border-bottom:none;">
+  <div class="wrap contact-inner">
+    <div>
+      <h2>Tell us what's breaking, or what you're building.</h2>
+      <p>One message reaches the whole team — support, design, and engineering. We'll reply with next steps, not a sales script.</p>
+    </div>
+    <div class="contact-card">
+      <?php if ($status && isset($statusMessages[$status])): [$type, $msg] = $statusMessages[$status]; ?>
+        <div class="banner <?= $type ?>"><?= htmlspecialchars($msg) ?></div>
+      <?php endif; ?>
+      <form method="post" action="contact-handler.php">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+        <button type="submit" class="form-submit">Send message</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>© 2026 Uptime Labs — IT support & engineering studio.</footer>
+
+</body>
+</html>
